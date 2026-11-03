@@ -19,7 +19,7 @@ if git diff --cached --quiet; then
   say "[i] 本地没有新改动"
 else
   say "[+] 检测到改动："
-  git diff --cached --name-status | head -20 | sed 's/^/    /' | tee -a "$LOG"
+  git -c core.quotepath=false diff --cached --name-status | head -20 | sed 's/^/    /' | tee -a "$LOG"
   MSG="sync: $(date +'%Y-%m-%d %H:%M')"
   if git -c user.name="Bin9chn" -c user.email="Bin9chn@users.noreply.github.com" commit -q -m "$MSG"; then
     say "[✓] 已提交：$MSG"
