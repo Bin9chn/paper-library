@@ -20,7 +20,12 @@ const OWNER = 'Bin9chn';
 const NAME = 'paper-library';
 const BRANCH = 'main';
 
-const git = (args) => execFileSync('git', args, { cwd: REPO, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
+const git = (args) =>
+  execFileSync('git', ['-c', 'core.quotepath=false', ...args], {
+    cwd: REPO,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  }).trim();
 
 function getToken() {
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN.trim();

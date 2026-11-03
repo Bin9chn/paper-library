@@ -3,7 +3,7 @@
 # 用法：bash sync.sh
 #
 # 说明：本机 github.com:443 连不上（超时），所以推送走 api.github.com 的
-# Git Data API，由同目录的 push-api.mjs 完成。
+# Git Data API，由同目录的 push-api.mjs 完成。没有改动时它自己会跳过。
 
 set -uo pipefail
 
@@ -13,26 +13,24 @@ cd "$REPO_DIR" || { echo "[x] 进不去目录：$REPO_DIR"; exit 1; }
 LOG="$REPO_DIR/sync.log"
 say() { echo "[$(date +'%H:%M:%S')] $*" | tee -a "$LOG"; }
 
-# 1. 暂存并检查是否有变化
+# 1. 暂存本地改动（有改动才提交）
 git add -A
 if git diff --cached --quiet; then
-  say "[=] 没有新改动，跳过"
-  exit 0
+  say "[i] 本地没有新改动"
+else
+  say "[+] 检测到改动："
+  git diff --cached --name-status | head -20 | sed 's/^/    /' | tee -a "$LOG"
+  MSG="sync: $(date +'%Y-%m-%d %H:%M')"
+  if git -c user.name="Bin9chn" -c user.email="Bin9chn@users.noreply.github.com" commit -q -m "$MSG"; then
+    say "[✓] 已提交：$MSG"
+  else
+    say "[x] 提交失败"
+    exit 1
+  fi
 fi
 
-say "[+] 检测到改动："
-git diff --cached --name-status | head -20 | sed 's/^/    /' | tee -a "$LOG"
-
-# 2. 提交
-MSG="sync: $(date +'%Y-%m-%d %H:%M')"
-if ! git -c user.name="Bin9chn" -c user.email="Bin9chn@users.noreply.github.com" commit -q -m "$MSG"; then
-  say "[x] 提交失败"
-  exit 1
-fi
-say "[✓] 已提交：$MSG"
-
-# 3. 推送（走 API）
-if node "$REPO_DIR/push-api.mjs" "$MSG" 2>&1 | tee -a "$LOG"; then
+# 2. 推送（push-api.mjs 会自己比对远程，已一致则跳过）
+if node "$REPO_DIR/push-api.mjs" 2>&1 | tee -a "$LOG"; then
   say "[✓] 同步完成"
 else
   say "[x] 推送失败，详情见 sync.log"
